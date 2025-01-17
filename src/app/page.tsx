@@ -70,7 +70,7 @@ export default function Home() {
           onChange={(e) => setMessage(e.target.value)} // Actualiza el estado del mensaje al escribir
           rows={3}
           placeholder="Escribe tu mensaje..."
-          className="w-full p-2 border rounded" // Estilo del textarea
+          className="w-full p-2 border rounded text-black" // Estilo del textarea
         />
         <button
           type="submit"
