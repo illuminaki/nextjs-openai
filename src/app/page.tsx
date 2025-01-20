@@ -1,52 +1,56 @@
-'use client'; // Habilita el modo cliente en Next.js para que este componente se renderice del lado del cliente
+'use client';
 
-import { useState } from 'react'; // Importa el hook useState para manejar el estado en el componente
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  // Estado para manejar el mensaje del usuario
   const [message, setMessage] = useState('');
-  
-  // Estado para almacenar el historial de chat (roles y contenido)
   const [chat, setChat] = useState<{ role: string; content: string }[]>([]);
-  
-  // Estado para controlar si la solicitud está en curso
   const [loading, setLoading] = useState(false);
 
-  // Maneja el envío del formulario
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Previene el comportamiento predeterminado del formulario (recargar la página)
+  // Carga el historial de chats desde la base de datos al montar el componente
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const res = await fetch('/api/chat');
+        if (!res.ok) throw new Error('Error al obtener chats');
+        const data = await res.json();
+        setChat(data.chats);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchChats();
+  }, []);
 
-    // Valida que el mensaje no esté vacío
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!message.trim()) return;
 
-    // Agrega el mensaje del usuario al historial de chat
     const newChat = [...chat, { role: 'user', content: message }];
-    setChat(newChat); // Actualiza el estado del chat
-    setMessage(''); // Limpia el campo de texto
-    setLoading(true); // Indica que se está procesando la solicitud
+    setChat(newChat);
+    setMessage('');
+    setLoading(true);
 
     try {
-      // Realiza una solicitud POST al endpoint de la API
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, // Especifica el tipo de contenido
-        body: JSON.stringify({ message }), // Envía el mensaje del usuario en el cuerpo de la solicitud
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
       });
 
-      // Maneja errores de la solicitud
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error desconocido'); // Lanza un error si la solicitud falla
+        throw new Error(errorData.error || 'Error desconocido');
       }
 
-      // Obtiene la respuesta de la API y la agrega al historial de chat
       const data = await response.json();
       setChat([...newChat, { role: 'assistant', content: data.reply }]);
     } catch (error) {
-      console.error('Error:', error); // Registra el error en la consola
-      setChat([...newChat, { role: 'assistant', content: 'Error de conexión.' }]); // Muestra un mensaje de error en el chat
+      console.error('Error:', error);
+      setChat([...newChat, { role: 'assistant', content: 'Error de conexión.' }]);
     } finally {
-      setLoading(false); // Finaliza el estado de carga
+      setLoading(false);
     }
   };
 
@@ -66,18 +70,18 @@ export default function Home() {
       {/* Formulario para enviar mensajes */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
-          value={message} // Vincula el estado del mensaje al valor del textarea
-          onChange={(e) => setMessage(e.target.value)} // Actualiza el estado del mensaje al escribir
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
           rows={3}
           placeholder="Escribe tu mensaje..."
-          className="w-full p-2 border rounded text-black" // Estilo del textarea
+          className="w-full p-2 border rounded text-black"
         />
         <button
           type="submit"
-          disabled={loading} // Deshabilita el botón si está en estado de carga
+          disabled={loading}
           className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
         >
-          {loading ? 'Enviando...' : 'Enviar'} {/* Muestra el estado de carga */}
+          {loading ? 'Enviando...' : 'Enviar'}
         </button>
       </form>
     </div>

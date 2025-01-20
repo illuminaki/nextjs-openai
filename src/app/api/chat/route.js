@@ -1,43 +1,82 @@
-import OpenAI from "openai"; // Importa la biblioteca de OpenAI para interactuar con la API
-import { NextResponse } from "next/server"; // Importa NextResponse para manejar las respuestas en Next.js
+import OpenAI from "openai";
+import { NextResponse } from "next/server";
+import { PrismaClient } from '@prisma/client';  // Import PrismaClient to interact with the database
 
-// Configura la instancia de OpenAI con la clave de API
+// Initialize a new PrismaClient instance
+const prisma = new PrismaClient();
+
+// Initialize OpenAI client with API key from environment variables
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Se obtiene la clave de la API desde las variables de entorno
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
+// POST method to handle incoming chat messages
 export async function POST(request) {
   try {
-    // Extrae el mensaje enviado en el cuerpo de la solicitud
+    // Parse JSON body from the incoming request
     const { message } = await request.json();
 
-    // Valida que se haya proporcionado un mensaje
+    // If no message is provided, return a 400 Bad Request response
     if (!message) {
       return NextResponse.json(
-        { error: "El mensaje es obligatorio" }, // Respuesta en caso de mensaje faltante
-        { status: 400 } // Código de estado HTTP 400: Solicitud incorrecta
+        { error: "El mensaje es obligatorio" }, // Message is required
+        { status: 400 }
       );
     }
 
-    // Llama a la API de OpenAI para generar una respuesta basada en el mensaje del usuario
+    // Call OpenAI API to generate a response based on the user's message
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Modelo utilizado para la generación de texto
-      messages: [{ role: "user", content: message }], // Define el contexto del chat con el mensaje del usuario
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: message }],
     });
 
-    // Obtiene la respuesta generada por el modelo o devuelve un mensaje por defecto si no hay respuesta
+    // Extract reply from the response, or use default if none found
     const reply = response.choices[0]?.message?.content || "Sin respuesta.";
 
-    // Devuelve la respuesta generada al cliente
+    // Store the user's message in the database
+    await prisma.chat.create({
+      data: {
+        role: 'user',
+        content: message
+      }
+    });
+
+    // Store the assistant's reply in the database
+    await prisma.chat.create({
+      data: {
+        role: 'assistant',
+        content: reply
+      }
+    });
+
+    // Return the assistant's reply as JSON response
     return NextResponse.json({ reply });
   } catch (error) {
-    // Registra cualquier error ocurrido durante la solicitud
     console.error("Error al conectar con OpenAI:", error.message);
-
-    // Devuelve una respuesta con un error interno del servidor
+    // Return a 500 Internal Server Error response in case of failure
     return NextResponse.json(
-      { error: "Error en el servidor" }, // Mensaje de error
-      { status: 500 } // Código de estado HTTP 500: Error interno del servidor
+      { error: "Error en el servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+// GET method to retrieve stored chat history
+export async function GET(request) {
+  try {
+    // Fetch all chat records from the database, ordered by creation date ascending
+    const chats = await prisma.chat.findMany({
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // Return the chat history as JSON
+    return NextResponse.json({ chats });
+  } catch (error) {
+    console.error("Error al obtener chats:", error.message);
+    // Return a 500 Internal Server Error response in case of failure
+    return NextResponse.json(
+      { error: "Error al obtener chats" },
+      { status: 500 }
     );
   }
 }
