@@ -8,7 +8,9 @@ const prisma = new PrismaClient();
 // Initialize OpenAI client with API key from environment variables
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: process.env.NODE_ENV === 'test',
 });
+
 
 // POST method to handle incoming chat messages
 export async function POST(request) {
@@ -29,9 +31,9 @@ export async function POST(request) {
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: message }],
     });
-
-    // Extract reply from the response, or use default if none found
-    const reply = response.choices[0]?.message?.content || "Sin respuesta.";
+    
+    // Ensure response has valid choices
+    const reply = response.choices?.[0]?.message?.content || "No response from OpenAI";
 
     // Store the user's message in the database
     await prisma.chat.create({
