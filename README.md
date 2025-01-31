@@ -110,6 +110,11 @@ En el directorio del proyecto, puedes ejecutar los siguientes scripts:
 - `npm run start`: Inicia el servidor en modo de producción.
 - `npm run lint`: Analiza y corrige errores de estilo de código.
 
+## Análisis de Código con SonarQube
+
+Para información detallada sobre cómo configurar y ejecutar SonarQube en este proyecto, consulta el documento [SONARQUBE.md](./SONARQUBE.md).
+
+
 ## Notas importantes
 
 - Asegúrate de no subir tu archivo `.env` al repositorio. Este archivo debe incluirse en `.gitignore`.
